@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Env / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local PDFs (do not commit real/confidential drawings)
+/sample-pdfs/*.pdf
+!/sample-pdfs/.gitkeep
+*.pdf
+!docs/**/*.pdf
+
+# Large files
+*.zip
+*.7z
