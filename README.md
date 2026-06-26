@@ -105,7 +105,7 @@ npm run tauri build
 - テキスト追記・画像貼り付け・スタンプ・赤入れ
 - 別名保存・書き出し
 - Windowsインストーラー配布
-- **Tauriネイティブアプリとしての実機起動確認**（`npm run tauri dev` / `npm run tauri build` は、開発環境にRust/Cargoツールチェーンがないため未実施です。設定ファイル（`src-tauri/`配下）はレビュー済みですが、実際の起動動作は未確認です）
+- **Windows環境でのTauriネイティブアプリ実機起動確認**（後述「確認済み環境」を参照。現時点ではLinuxサンドボックスでのフロントエンド検証のみで、Windows実機での `npm run tauri dev` / `npm run tauri build` は未実施です）
 
 ## 既知の課題（npm audit）
 
@@ -119,6 +119,22 @@ npm run tauri build
 - いずれも**devDependencies（開発時のみ使用）の間接依存**であり、配布するアプリ本体（`dist`/Tauriバンドル）には含まれません。
 - ただし、**本番配布前には`@typescript-eslint`系・`vite`のメジャーアップグレードを検討し、破壊的変更の影響を確認した上で対応必須**です。
 - 現時点で即時修正可能な非破壊的な`npm audit fix`はありません（実行済み、変化なし）。
+
+## 確認済み環境
+
+2026-06-27時点で実施した確認内容です。
+
+| 確認内容 | 環境 | 結果 |
+|---|---|---|
+| `npm install` | Linuxサンドボックス（Node.js 22） | pass |
+| `npm run lint` | 同上 | pass |
+| `npm run typecheck` | 同上 | pass |
+| `npm run build` | 同上 | pass（`dist`生成） |
+| `npm run tauri dev` / `npm run tauri build` | Linuxサンドボックス | **未実施**（`webkit2gtk`未導入・GUI表示環境なしのため、Tauriのネイティブビルド・起動ができません） |
+| Windows実機での `npm run tauri dev`（初期画面表示、PDFを開く入口・各未実装ボタンの表示確認） | Windows | **未実施**（本リポジトリの開発・検証は現時点でLinux環境上で行われており、Windows実機での起動確認はまだ行われていません） |
+| コード上の不要な外部通信の有無 | ソースコード読査 | pass（`src/`, `src-tauri/src/` 配下に `fetch`/`axios`/`XMLHttpRequest`/外部URL呼び出しは存在しません） |
+
+**Windows実機での起動確認は、Windows環境を持つ開発者の方が `npm install` → `npm run tauri dev` を実行し、初期画面（アプリ名・説明・「PDFを開く（未接続）」ボタン・各「（未実装）」表示ボタン）が表示されることを目視確認する必要があります。**
 
 ## ロードマップ（概要）
 
