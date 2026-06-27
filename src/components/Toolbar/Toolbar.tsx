@@ -1,12 +1,13 @@
 interface ToolbarProps {
   onOpenPdf: () => void;
+  isOpening: boolean;
 }
 
-export function Toolbar({ onOpenPdf }: ToolbarProps) {
+export function Toolbar({ onOpenPdf, isOpening }: ToolbarProps) {
   return (
     <div className="toolbar">
-      <button onClick={onOpenPdf} title="ファイル選択・読み込み処理は未接続です">
-        PDFを開く（未接続）
+      <button onClick={onOpenPdf} disabled={isOpening} title="PDFファイルを選択します">
+        {isOpening ? 'PDFを開く（読み込み中…）' : 'PDFを開く'}
       </button>
       <button disabled title="未実装">ページ回転（未実装）</button>
       <button disabled title="未実装">ページ削除（未実装）</button>
