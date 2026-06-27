@@ -65,3 +65,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1 -Branch feat
 ### ログ
 
 実行結果は `logs/windows-verification/` 配下にタイムスタンプ付きで保存されます。PDFファイルパスやPDF内容はログに出力しません。
+
+### 文字エンコーディングについて
+
+`scripts/verify-windows.ps1` は文字化け（Shift-JIS / UTF-8 BOM不整合によるPowerShell構文エラー）を避けるため、スクリプト本体はASCII文字のみで記述しています。サマリ表示の各項目は `pass` / `fail` / `not_run` / `stashed (...)` などのASCII値で表示されます。

@@ -1,13 +1,16 @@
 <#
 .SYNOPSIS
-  ArchPDFのWindowsローカル動作確認をまとめて実行するスクリプト。
+  Run ArchPDF Windows local verification checks in one command.
 
 .DESCRIPTION
-  git status確認 / npm install / lint / typecheck / build を必ず実行する。
-  -Branch 指定時は fetch / checkout / pull まで行う。
-  -RunTauriDev / -RunTauriBuild 指定時のみ、それぞれ npm run tauri dev / npm run tauri build を実行する。
-  実行結果は logs/windows-verification/ 配下にタイムスタンプ付きで保存する。
-  PDFファイルパスやPDF内容はログに出力しない。
+  Always runs: git status check, npm install, lint, typecheck, build.
+  If -Branch is given: git fetch / checkout / pull that branch first.
+  If -RunTauriDev is given: also run npm run tauri dev.
+  If -RunTauriBuild is given: also run npm run tauri build and check bundle paths.
+  Results are logged to logs/windows-verification/.
+  Note: this script intentionally avoids non-ASCII characters to prevent
+  encoding issues (Shift-JIS / UTF-8 BOM mismatches) on Windows PowerShell.
+  PDF file paths and PDF content are never written to the log.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1
@@ -30,23 +33,23 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $RepoRoot
 
 $Results = [ordered]@{
-    Branch            = $null
-    Commit            = $null
-    'npm install'     = '未実行'
-    lint              = '未実行'
-    typecheck         = '未実行'
-    build             = '未実行'
-    'tauri dev'       = '未実行'
-    'tauri build'     = '未実行'
-    AutoStash         = '未実施'
-    'Generated bundles' = '未確認'
+    Branch            = 'unknown'
+    Commit            = 'unknown'
+    npm_install       = 'not_run'
+    lint              = 'not_run'
+    typecheck         = 'not_run'
+    build             = 'not_run'
+    tauri_dev         = 'not_run'
+    tauri_build       = 'not_run'
+    auto_stash        = 'not_run'
+    generated_bundles = 'not_checked'
 }
 
 $LogDir = Join-Path $RepoRoot 'logs/windows-verification'
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $Timestamp = Get-Date -Format 'yyyy-MM-dd_HHmm'
 $BranchLabel = if ($Branch) { $Branch -replace '[\\/]', '-' } else { 'current-branch' }
-$LogFile = Join-Path $LogDir "$Timestamp`_$BranchLabel.txt"
+$LogFile = Join-Path $LogDir ("{0}_{1}.txt" -f $Timestamp, $BranchLabel)
 
 function Write-Log {
     param([string]$Message)
@@ -58,40 +61,40 @@ function Invoke-Step {
         [string]$Name,
         [scriptblock]$Action
     )
-    Write-Log "==== $Name ===="
+    Write-Log ("==== {0} ====" -f $Name)
     try {
         & $Action
         if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
-            throw "$Name failed with exit code $LASTEXITCODE"
+            throw ("{0} failed with exit code {1}" -f $Name, $LASTEXITCODE)
         }
         return 'pass'
     } catch {
-        Write-Log "ERROR: $($_.Exception.Message)"
+        Write-Log ("ERROR: {0}" -f $_.Exception.Message)
         return 'fail'
     }
 }
 
-Write-Log "ArchPDF Windows Verification - $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+Write-Log ("ArchPDF Windows Verification - {0}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
 
-# --- ブランチ指定時のfetch/checkout/pull ---
+# --- Branch fetch/checkout/pull ---
 if ($Branch) {
     Write-Log "==== git fetch origin ===="
     git fetch origin 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
 
     $localBranchExists = [bool](git branch --list $Branch)
     if ($localBranchExists) {
-        Write-Log "==== git checkout $Branch ===="
+        Write-Log ("==== git checkout {0} ====" -f $Branch)
         git checkout $Branch 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
     } else {
-        Write-Log "==== git checkout -b $Branch origin/$Branch ===="
+        Write-Log ("==== git checkout -b {0} origin/{0} ====" -f $Branch)
         git checkout -b $Branch "origin/$Branch" 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
     }
 
-    Write-Log "==== git pull origin $Branch ===="
+    Write-Log ("==== git pull origin {0} ====" -f $Branch)
     git pull origin $Branch 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
 }
 
-# --- git status確認 ---
+# --- git status check ---
 Write-Log "==== git status ===="
 $statusOutput = git status --short
 $statusOutput | Tee-Object -FilePath $LogFile -Append | Out-Host
@@ -99,9 +102,9 @@ $statusOutput | Tee-Object -FilePath $LogFile -Append | Out-Host
 if ($statusOutput) {
     if ($AutoStash) {
         $stashMessage = "auto-stash-before-windows-verification-$Timestamp"
-        Write-Log "Working tree is not clean. Stashing local changes: $stashMessage"
+        Write-Log ("Working tree is not clean. Stashing local changes: {0}" -f $stashMessage)
         git stash push -u -m $stashMessage 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
-        $Results.AutoStash = "実施 ($stashMessage)"
+        $Results.auto_stash = "stashed ($stashMessage)"
         Write-Log "Note: stash was not automatically popped. Restore manually with 'git stash pop' if needed."
     } else {
         Write-Log "Working tree is not clean."
@@ -117,49 +120,48 @@ $Results.Branch = (git rev-parse --abbrev-ref HEAD)
 $Results.Commit = (git rev-parse --short HEAD)
 
 # --- npm install / lint / typecheck / build ---
-$Results.'npm install' = Invoke-Step 'npm install' { npm install }
+$Results.npm_install = Invoke-Step 'npm install' { npm install }
 $Results.lint = Invoke-Step 'npm run lint' { npm run lint }
 $Results.typecheck = Invoke-Step 'npm run typecheck' { npm run typecheck }
 $Results.build = Invoke-Step 'npm run build' { npm run build }
 
-# --- Tauri dev (任意) ---
+# --- Tauri dev (optional) ---
 if ($RunTauriDev) {
-    Write-Log @"
-Tauri dev will open the ArchPDF desktop app.
-After checking the window, close the app or press Ctrl+C in this terminal.
-Manual checks:
-- App window opens
-- PDF open button works
-- PDF file can be selected
-- First page is rendered
-- File name and page count are shown
-- No serious console errors
-"@
-    $Results.'tauri dev' = Invoke-Step 'npm run tauri dev' { npm run tauri dev }
+    Write-Log "Tauri dev will open the ArchPDF desktop app."
+    Write-Log "After checking the window, close the app or press Ctrl+C in this terminal."
+    Write-Log "Manual checks:"
+    Write-Log "- App window opens"
+    Write-Log "- PDF open button works"
+    Write-Log "- PDF file can be selected"
+    Write-Log "- First page is rendered"
+    Write-Log "- File name and page count are shown"
+    Write-Log "- No serious console errors"
+
+    $Results.tauri_dev = Invoke-Step 'npm run tauri dev' { npm run tauri dev }
 }
 
-# --- Tauri build (任意) ---
+# --- Tauri build (optional) ---
 if ($RunTauriBuild) {
-    $Results.'tauri build' = Invoke-Step 'npm run tauri build' { npm run tauri build }
+    $Results.tauri_build = Invoke-Step 'npm run tauri build' { npm run tauri build }
 
     $msiPath = Join-Path $RepoRoot 'src-tauri/target/release/bundle/msi'
     $nsisPath = Join-Path $RepoRoot 'src-tauri/target/release/bundle/nsis'
     $msiExists = Test-Path $msiPath
     $nsisExists = Test-Path $nsisPath
 
-    Write-Log "MSI bundle path ($msiPath): $(if ($msiExists) { 'exists' } else { 'not found' })"
-    Write-Log "NSIS bundle path ($nsisPath): $(if ($nsisExists) { 'exists' } else { 'not found' })"
+    Write-Log ("MSI bundle path ({0}): {1}" -f $msiPath, $(if ($msiExists) { 'exists' } else { 'not_found' }))
+    Write-Log ("NSIS bundle path ({0}): {1}" -f $nsisPath, $(if ($nsisExists) { 'exists' } else { 'not_found' }))
 
-    $Results.'Generated bundles' = "msi=$(if ($msiExists) {'exists'} else {'not found'}), nsis=$(if ($nsisExists) {'exists'} else {'not found'})"
+    $Results.generated_bundles = "msi={0}, nsis={1}" -f $(if ($msiExists) { 'exists' } else { 'not_found' }), $(if ($nsisExists) { 'exists' } else { 'not_found' })
 }
 
-# --- サマリ表示 ---
-Write-Log ''
-Write-Log 'ArchPDF Windows Verification Summary'
-Write-Log ''
+# --- Summary ---
+Write-Log ""
+Write-Log "ArchPDF Windows Verification Summary"
+Write-Log ""
 foreach ($key in $Results.Keys) {
-    Write-Log "$($key): $($Results[$key])"
+    Write-Log ("{0}: {1}" -f $key, $Results[$key])
 }
 
-Write-Log ''
-Write-Log "Log saved to: $LogFile"
+Write-Log ""
+Write-Log ("Log saved to: {0}" -f $LogFile)
