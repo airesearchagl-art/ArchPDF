@@ -28,6 +28,10 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Windows verification logs (local-only, may include machine-specific output)
+logs/windows-verification/*
+!logs/windows-verification/.gitkeep
+
 # Local PDFs (do not commit real/confidential drawings)
 /sample-pdfs/*.pdf
 !/sample-pdfs/.gitkeep

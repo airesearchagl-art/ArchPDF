@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
     "typecheck": "tsc --noEmit",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "verify:windows": "powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1",
+    "verify:windows:full": "powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1 -RunTauriDev -RunTauriBuild"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",
