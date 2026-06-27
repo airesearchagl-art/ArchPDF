@@ -62,16 +62,21 @@ function Invoke-Step {
         [scriptblock]$Action
     )
     Write-Log ("==== {0} ====" -f $Name)
+    [string]$status = 'fail'
     try {
-        & $Action
+        $output = & $Action 2>&1
+        foreach ($line in $output) {
+            Write-Log ([string]$line)
+        }
         if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
             throw ("{0} failed with exit code {1}" -f $Name, $LASTEXITCODE)
         }
-        return 'pass'
+        $status = 'pass'
     } catch {
         Write-Log ("ERROR: {0}" -f $_.Exception.Message)
-        return 'fail'
+        $status = 'fail'
     }
+    return [string]$status
 }
 
 Write-Log ("ArchPDF Windows Verification - {0}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
