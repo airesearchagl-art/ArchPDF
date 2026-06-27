@@ -126,15 +126,15 @@ npm run tauri build
 
 | 確認内容 | 環境 | 結果 |
 |---|---|---|
-| `npm install` | Linuxサンドボックス（Node.js 22） | pass |
-| `npm run lint` | 同上 | pass |
-| `npm run typecheck` | 同上 | pass |
-| `npm run build` | 同上 | pass（`dist`生成） |
-| `npm run tauri dev` / `npm run tauri build` | Linuxサンドボックス | **未実施**（`webkit2gtk`未導入・GUI表示環境なしのため、Tauriのネイティブビルド・起動ができません） |
-| Windows実機での `npm run tauri dev`（初期画面表示、PDFを開く入口・各未実装ボタンの表示確認） | Windows | **未実施**（本リポジトリの開発・検証は現時点でLinux環境上で行われており、Windows実機での起動確認はまだ行われていません） |
+| `npm install` | Windows実機 | pass |
+| `npm run lint` | Windows実機 | pass |
+| `npm run typecheck` | Windows実機 | 本PR反映前は `App.tsx` と `Toolbar.tsx`/`StatusBar.tsx` のProps不整合により失敗していたが、本PRの修正により解消（Linuxサンドボックスで再確認しpass） |
+| `npm run build` | Windows実機 | 本PR反映前は上記typecheckエラーにより失敗していたが、本PRの修正により解消（Linuxサンドボックスで再確認しpass、`dist`生成） |
+| `npm run tauri dev` | Windows実機 | 本PR反映前は `src-tauri/icons/icon.ico` が存在せずRustビルド時にエラーとなり失敗していたが、`src-tauri/icons/` 配下にアイコン一式を追加し解消。Linuxサンドボックスでは `webkit2gtk`未導入・GUI表示環境なしのため実起動確認は**未実施** |
+| `npm run tauri build` | Linuxサンドボックス | **未実施**（理由は上記と同様） |
 | コード上の不要な外部通信の有無 | ソースコード読査 | pass（`src/`, `src-tauri/src/` 配下に `fetch`/`axios`/`XMLHttpRequest`/外部URL呼び出しは存在しません） |
 
-**Windows実機での起動確認は、Windows環境を持つ開発者の方が `npm install` → `npm run tauri dev` を実行し、初期画面（アプリ名・説明・「PDFを開く」ボタン・各「（未実装）」表示ボタン、PDF以外選択時のエラー表示）が表示されることを目視確認する必要があります。**
+**`npm run tauri dev` / `npm run tauri build` の実機起動・目視確認（アプリウィンドウ表示、初期画面、PDFを開くボタン、未実装表示、コンソールエラーの有無）は、本PRのアイコン追加後にWindows環境を持つ開発者の方が再実行して確認する必要があります。**
 
 ## ロードマップ（概要）
 
