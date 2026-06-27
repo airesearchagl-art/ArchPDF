@@ -94,16 +94,24 @@ npm run tauri build
 - 依存ライブラリはCDN経由ではなく、npm経由でバンドルすることを基本とします。
 - PDF加工機能を実装する際は、**元PDFを直接上書きせず、別名保存を基本方針とします**。元ファイルの破壊を防ぐためです。
 
+## 現在できること
+
+- Tauri dialogでPDFファイルを選択（PDF以外を選んだ場合はエラー表示、キャンセル時は状態を維持）
+- 選択したPDFをローカルで読み込み、PDF.jsで**1ページ目のみ**をcanvasに表示
+- 総ページ数の表示
+- 読み込み中・成功・失敗（破損PDF / 読み込み失敗 / PDF.js初期化失敗 / Tauri API呼び出し失敗）の状態表示
+- PDF.jsワーカーはCDNを使わずnpmパッケージからローカルバンドル
+
 ## 未実装機能
 
 現時点では以下は未実装です。今後のマイルストーンで段階的に対応します。
 
-- **PDF本文の表示・解析処理（ファイル選択は実装済みですが、PDF.jsによる実表示・ページ解析は未接続です）**
+- 全ページ表示・ページ送り
 - ページサムネイル生成
 - ページ削除・並べ替え・回転の実処理
 - PDF結合・分割
 - テキスト追記・画像貼り付け・スタンプ・赤入れ
-- 別名保存・書き出し
+- PDF保存・別名保存・書き出し
 - Windowsインストーラー配布
 - **Windows環境でのTauriネイティブアプリ実機起動確認**（後述「確認済み環境」を参照。現時点ではLinuxサンドボックスでのフロントエンド検証のみで、Windows実機での `npm run tauri dev` / `npm run tauri build` は未実施です）
 
@@ -122,19 +130,19 @@ npm run tauri build
 
 ## 確認済み環境
 
-2026-06-27時点で実施した確認内容です。
+2026-06-27時点で実施した確認内容です（PDF.js 1ページ目表示の実装時点）。
 
 | 確認内容 | 環境 | 結果 |
 |---|---|---|
-| `npm install` | Windows実機 | pass |
-| `npm run lint` | Windows実機 | pass |
-| `npm run typecheck` | Windows実機 | 本PR反映前は `App.tsx` と `Toolbar.tsx`/`StatusBar.tsx` のProps不整合により失敗していたが、本PRの修正により解消（Linuxサンドボックスで再確認しpass） |
-| `npm run build` | Windows実機 | 本PR反映前は上記typecheckエラーにより失敗していたが、本PRの修正により解消（Linuxサンドボックスで再確認しpass、`dist`生成） |
-| `npm run tauri dev` | Windows実機 | 本PR反映前は `src-tauri/icons/icon.ico` が存在せずRustビルド時にエラーとなり失敗していたが、`src-tauri/icons/` 配下にアイコン一式を追加し解消。Linuxサンドボックスでは `webkit2gtk`未導入・GUI表示環境なしのため実起動確認は**未実施** |
+| `npm install` | Linuxサンドボックス | pass |
+| `npm run lint` | Linuxサンドボックス | pass |
+| `npm run typecheck` | Linuxサンドボックス | pass |
+| `npm run build` | Linuxサンドボックス | pass（`dist`生成、PDF.jsワーカーはローカルバンドルされ別アセットとして出力されることを確認） |
+| `npm run tauri dev` | Linuxサンドボックス | **未実施**（`webkit2gtk`未導入・GUI表示環境なしのため） |
 | `npm run tauri build` | Linuxサンドボックス | **未実施**（理由は上記と同様） |
 | コード上の不要な外部通信の有無 | ソースコード読査 | pass（`src/`, `src-tauri/src/` 配下に `fetch`/`axios`/`XMLHttpRequest`/外部URL呼び出しは存在しません） |
 
-**`npm run tauri dev` / `npm run tauri build` の実機起動・目視確認（アプリウィンドウ表示、初期画面、PDFを開くボタン、未実装表示、コンソールエラーの有無）は、本PRのアイコン追加後にWindows環境を持つ開発者の方が再実行して確認する必要があります。**
+**`npm run tauri dev` / `npm run tauri build` の実機起動・目視確認（PDFファイル選択、1ページ目表示、エラー表示、コンソールエラーの有無）は、Windows環境を持つ開発者の方が再実行して確認する必要があります。**
 
 ## ロードマップ（概要）
 

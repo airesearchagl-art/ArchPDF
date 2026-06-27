@@ -21,7 +21,7 @@ export function StatusBar({ pdf, status, errorMessage }: StatusBarProps) {
 
   return (
     <footer className="status-bar">
-      {pdf ? `${pdf.fileName} を選択しました（PDF表示は未実装です）` : 'PDFが開かれていません'}
+      {pdf ? `${pdf.fileName}（全${pdf.pageCount}ページ）の1ページ目を表示しています` : 'PDFが開かれていません'}
     </footer>
   );
 }
