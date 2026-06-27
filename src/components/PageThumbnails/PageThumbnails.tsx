@@ -8,9 +8,9 @@ export function PageThumbnails({ pdf }: PageThumbnailsProps) {
   return (
     <aside className="page-thumbnails">
       {pdf ? (
-        <p className="placeholder-note">ページ一覧（未実装: {pdf.pageCount}ページ）</p>
+        <p className="placeholder-note">全{pdf.pageCount}ページ（サムネイル一覧は今後対応予定）</p>
       ) : (
-        <p className="placeholder-note">PDFを開くとページ一覧が表示されます（未実装）</p>
+        <p className="placeholder-note">PDFを開くとページ数が表示されます</p>
       )}
     </aside>
   );

@@ -3,11 +3,20 @@ import { Toolbar } from './components/Toolbar/Toolbar';
 import { PageThumbnails } from './components/PageThumbnails/PageThumbnails';
 import { PdfViewer } from './components/PdfViewer/PdfViewer';
 import { StatusBar } from './components/StatusBar/StatusBar';
-import { openPdfFile, InvalidPdfFileError } from './features/pdf-open/openPdfFile';
+import {
+  openPdfFile,
+  readPdfFile,
+  InvalidPdfFileError,
+  TauriApiError,
+  PdfReadError,
+} from './features/pdf-open/openPdfFile';
+import { parsePdf, PdfParseError } from './lib/pdfjs';
+import type { PDFDocumentProxy } from './lib/pdfjs';
 import type { OpenedPdf, PdfOpenStatus } from './types/pdf';
 
 function App() {
   const [openedPdf, setOpenedPdf] = useState<OpenedPdf | null>(null);
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [status, setStatus] = useState<PdfOpenStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -16,18 +25,30 @@ function App() {
     setErrorMessage(null);
 
     try {
-      const pdf = await openPdfFile();
-      if (pdf) {
-        setOpenedPdf(pdf);
+      const selected = await openPdfFile();
+      if (!selected) {
+        // ファイル選択キャンセル時は既存の状態を維持する
+        setStatus('idle');
+        return;
       }
-      // pdfがnull（キャンセル）の場合は既存の状態を維持する
+
+      const data = await readPdfFile(selected.filePath);
+      const doc = await parsePdf(data);
+
+      setOpenedPdf({ ...selected, pageCount: doc.numPages });
+      setPdfDocument(doc);
       setStatus('idle');
     } catch (error) {
+      setOpenedPdf(null);
+      setPdfDocument(null);
       setStatus('error');
       setErrorMessage(
-        error instanceof InvalidPdfFileError
+        error instanceof InvalidPdfFileError ||
+          error instanceof TauriApiError ||
+          error instanceof PdfReadError ||
+          error instanceof PdfParseError
           ? error.message
-          : 'PDFファイルの選択に失敗しました。'
+          : 'PDFファイルの読み込みに失敗しました。'
       );
     }
   };
@@ -43,7 +64,7 @@ function App() {
 
       <main className="app-main">
         <PageThumbnails pdf={openedPdf} />
-        <PdfViewer pdf={openedPdf} />
+        <PdfViewer pdf={openedPdf} pdfDocument={pdfDocument} />
       </main>
 
       <StatusBar pdf={openedPdf} status={status} errorMessage={errorMessage} />
