@@ -4,9 +4,19 @@ interface StatusBarProps {
   pdf: OpenedPdf | null;
   status: PdfOpenStatus;
   errorMessage: string | null;
+  currentPage: number;
+  scale: number;
+  operationError: string | null;
 }
 
-export function StatusBar({ pdf, status, errorMessage }: StatusBarProps) {
+export function StatusBar({
+  pdf,
+  status,
+  errorMessage,
+  currentPage,
+  scale,
+  operationError,
+}: StatusBarProps) {
   if (status === 'loading') {
     return <footer className="status-bar">PDFファイルを読み込み中です…</footer>;
   }
@@ -19,9 +29,19 @@ export function StatusBar({ pdf, status, errorMessage }: StatusBarProps) {
     );
   }
 
+  if (operationError) {
+    return (
+      <footer className="status-bar" style={{ color: '#c0392b' }}>
+        {operationError}
+      </footer>
+    );
+  }
+
   return (
     <footer className="status-bar">
-      {pdf ? `${pdf.fileName}（全${pdf.pageCount}ページ）の1ページ目を表示しています` : 'PDFが開かれていません'}
+      {pdf
+        ? `${pdf.fileName}（${currentPage} / ${pdf.pageCount}ページ、${Math.round(scale * 100)}%）`
+        : 'PDFが開かれていません'}
     </footer>
   );
 }
