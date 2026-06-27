@@ -1,5 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 // ?url によりワーカーをローカルにバンドルし、CDN参照を避ける。
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -13,8 +13,38 @@ export const MIN_SCALE = 0.5;
 export const MAX_SCALE = 3.0;
 /** 幅に合わせる表示で許容する最大倍率。手動ズームの上限よりも控えめに制限する。 */
 export const FIT_MAX_SCALE = 2.0;
+/** canvasの辺の最大ピクセル数。高倍率・大判図面PDFでcanvasが無制限に巨大化することを防ぐ。 */
+export const MAX_CANVAS_DIMENSION = 4096;
 
 export type { PDFDocumentProxy };
+
+/**
+ * PDF.jsのrender taskをキャンセル可能にするためのハンドル。
+ * ページ・ズーム変更時に前回のrenderを中断するために使う。
+ */
+export class RenderTaskHandle {
+  private cancelled = false;
+  private task: { cancel: () => void } | null = null;
+
+  /** render開始後にrender taskを登録する。すでにキャンセル済みの場合は即時キャンセルする。 */
+  setTask(task: { cancel: () => void }): void {
+    if (this.cancelled) {
+      task.cancel();
+      return;
+    }
+    this.task = task;
+  }
+
+  /** 進行中のrenderをキャンセルする。 */
+  cancel(): void {
+    this.cancelled = true;
+    this.task?.cancel();
+  }
+
+  isCancelled(): boolean {
+    return this.cancelled;
+  }
+}
 
 /**
  * PDFバイナリを解析し、PDF.jsのドキュメントを取得する。
@@ -71,15 +101,35 @@ export async function computeFitScale(
 }
 
 /**
+ * 要求scaleを下限・上限、およびcanvas最大辺長に収まるように制限する。
+ * 大判図面PDF + 高倍率ズームでcanvasが無制限に巨大化することを防ぐ。
+ */
+function clampRenderScale(scale: number, page: PDFPageProxy): number {
+  let clamped = Math.min(Math.max(scale, MIN_SCALE), MAX_SCALE);
+
+  const baseViewport = page.getViewport({ scale: 1 });
+  const maxBaseDimension = Math.max(baseViewport.width, baseViewport.height);
+  if (maxBaseDimension > 0) {
+    const maxAllowedScale = MAX_CANVAS_DIMENSION / maxBaseDimension;
+    clamped = Math.min(clamped, maxAllowedScale);
+  }
+
+  return clamped;
+}
+
+/**
  * 指定ページを指定スケールでcanvasに描画する。表示中の1ページのみをレンダリングし、
- * 前の描画内容はcanvasのサイズ変更により破棄される。
+ * 描画開始前にcanvasをclearしてから描画する。
+ * `handle` を渡した場合、render taskを登録し、外部からキャンセルできるようにする。
+ * キャンセルされた場合は例外を投げずに正常終了する（呼び出し側でエラー表示しないため）。
  * @throws {PdfParseError} ページ番号が範囲外、またはページ取得・描画に失敗した場合。
  */
 export async function renderPage(
   doc: PDFDocumentProxy,
   pageNumber: number,
   canvas: HTMLCanvasElement,
-  scale: number
+  scale: number,
+  handle?: RenderTaskHandle
 ): Promise<void> {
   if (pageNumber < 1 || pageNumber > doc.numPages) {
     throw new PdfParseError('指定されたページ番号が範囲外です。');
@@ -87,7 +137,11 @@ export async function renderPage(
 
   try {
     const page = await doc.getPage(pageNumber);
-    const clampedScale = Math.min(Math.max(scale, MIN_SCALE), MAX_SCALE);
+    if (handle?.isCancelled()) {
+      return;
+    }
+
+    const clampedScale = clampRenderScale(scale, page);
     const viewport = page.getViewport({ scale: clampedScale });
 
     const context = canvas.getContext('2d');
@@ -97,9 +151,16 @@ export async function renderPage(
 
     canvas.width = viewport.width;
     canvas.height = viewport.height;
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
 
-    await page.render({ canvasContext: context, viewport }).promise;
+    const renderTask = page.render({ canvasContext: context, viewport });
+    handle?.setTask(renderTask);
+    await renderTask.promise;
   } catch (error) {
+    if (handle?.isCancelled()) {
+      return;
+    }
     if (error instanceof PdfParseError) {
       throw error;
     }
