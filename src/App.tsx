@@ -17,6 +17,15 @@ import type { OpenedPdf, PdfOpenStatus, ZoomMode } from './types/pdf';
 /** 手動ズームの段階表示倍率。 */
 const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
+/** 入力欄やcontenteditable要素にフォーカスがある場合、ショートカットを無効化するための判定。 */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  const tag = target.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable;
+}
+
 function App() {
   const [openedPdf, setOpenedPdf] = useState<OpenedPdf | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
@@ -121,7 +130,18 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && (event.key === '+' || event.key === '=')) {
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      const isZoomInKey =
+        event.key === '+' ||
+        event.key === '=' ||
+        event.key === 'Add' ||
+        event.code === 'Equal' ||
+        event.code === 'NumpadAdd';
+
+      if (event.ctrlKey && isZoomInKey) {
         event.preventDefault();
         handleZoomIn();
       } else if (event.ctrlKey && event.key === '-') {
@@ -173,6 +193,8 @@ function App() {
           zoomMode={zoomMode}
           scale={scale}
           onFitScaleComputed={handleFitScaleComputed}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
         />
       </main>
 

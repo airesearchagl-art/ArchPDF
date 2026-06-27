@@ -135,9 +135,19 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1 -Branch feat
 - 選択したPDFをローカルで読み込み、PDF.jsで表示中の1ページのみをcanvasに表示
 - 総ページ数の表示
 - 前後ページ移動（ボタン / ArrowLeft・ArrowRight・PageUp・PageDown）
-- ズームイン / ズームアウト（段階式、Ctrl + +、Ctrl + -）
+- ズームイン / ズームアウト（段階式、ボタン / Ctrl + マウスホイール）
 - 100%表示（Ctrl + 0）
 - 幅に合わせるフィット表示
+
+### キーボードショートカット
+
+- `Ctrl + +` / `Ctrl + =`: ズームイン
+- `Ctrl + -`: ズームアウト
+- `Ctrl + 0`: 100%表示
+- `Ctrl + マウスホイール`（PDF表示領域上）: ズームイン / ズームアウト
+- `ArrowLeft` / `ArrowRight` または `PageUp` / `PageDown`: ページ移動
+
+入力欄やcontenteditable要素にフォーカスがある場合、これらのショートカットは無効化されます。
 - 読み込み中・成功・失敗（破損PDF / 読み込み失敗 / PDF.js初期化失敗 / Tauri API呼び出し失敗 / ページ取得失敗 / ページ番号範囲外）の状態表示
 - PDF.jsワーカーはCDNを使わずnpmパッケージからローカルバンドル
 
