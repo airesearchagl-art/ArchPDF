@@ -85,6 +85,41 @@ npm run build
 npm run tauri build
 ```
 
+## Windows動作確認
+
+Windows実機での動作確認は `scripts/verify-windows.ps1` でまとめて実行できます（詳細は [scripts/README.md](scripts/README.md) を参照）。
+
+通常確認（`npm install` / lint / typecheck / build）:
+
+```powershell
+npm run verify:windows
+```
+
+Tauri起動・インストーラー生成まで確認（現在のブランチ）:
+
+```powershell
+npm run verify:windows:full
+```
+
+PRブランチを指定して確認する場合（fetch/checkout/pullまで実行）:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1 -Branch feature/pdf-first-page-viewer -AutoStash -RunTauriDev -RunTauriBuild
+```
+
+`-RunTauriDev` 実行時は、アプリ画面を目視で確認してください。
+
+確認項目:
+
+- アプリが起動する
+- PDFを開くボタンが動く
+- PDFファイルを選択できる
+- 1ページ目が表示される
+- ファイル名とページ数が表示される
+- 重大なコンソールエラーがない
+
+実行ログは `logs/windows-verification/` に保存されます（PDFファイルパスやPDF内容は出力しません）。
+
 ## セキュリティ方針
 
 - PDFファイルは原則として**ローカル処理**のみとし、外部サーバーへ送信しません。
