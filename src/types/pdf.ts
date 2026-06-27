@@ -7,3 +7,6 @@ export interface OpenedPdf {
 
 /** PDFファイル選択〜読み込みの状態。 */
 export type PdfOpenStatus = 'idle' | 'loading' | 'error';
+
+/** ズーム表示モード。fit: 表示領域の幅に合わせる / custom: 手動指定のscaleを使う。 */
+export type ZoomMode = 'fit' | 'custom';

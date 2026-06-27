@@ -44,6 +44,21 @@
   opacity: 0.5;
 }
 
+.toolbar-separator {
+  width: 1px;
+  margin: 0 4px;
+  background: #ddd;
+}
+
+.toolbar-page-indicator,
+.toolbar-zoom-indicator {
+  min-width: 56px;
+  text-align: center;
+  font-size: 13px;
+  color: #444;
+  align-self: center;
+}
+
 .page-thumbnails {
   width: 180px;
   border-right: 1px solid #eee;
@@ -72,6 +87,11 @@
 
 .pdf-viewer-error {
   color: #c0392b;
+}
+
+.pdf-viewer-loading {
+  font-size: 13px;
+  color: #888;
 }
 
 .status-bar {

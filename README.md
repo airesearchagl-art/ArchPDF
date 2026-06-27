@@ -132,16 +132,19 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1 -Branch feat
 ## 現在できること
 
 - Tauri dialogでPDFファイルを選択（PDF以外を選んだ場合はエラー表示、キャンセル時は状態を維持）
-- 選択したPDFをローカルで読み込み、PDF.jsで**1ページ目のみ**をcanvasに表示
+- 選択したPDFをローカルで読み込み、PDF.jsで表示中の1ページのみをcanvasに表示
 - 総ページ数の表示
-- 読み込み中・成功・失敗（破損PDF / 読み込み失敗 / PDF.js初期化失敗 / Tauri API呼び出し失敗）の状態表示
+- 前後ページ移動（ボタン / ArrowLeft・ArrowRight・PageUp・PageDown）
+- ズームイン / ズームアウト（段階式、Ctrl + +、Ctrl + -）
+- 100%表示（Ctrl + 0）
+- 幅に合わせるフィット表示
+- 読み込み中・成功・失敗（破損PDF / 読み込み失敗 / PDF.js初期化失敗 / Tauri API呼び出し失敗 / ページ取得失敗 / ページ番号範囲外）の状態表示
 - PDF.jsワーカーはCDNを使わずnpmパッケージからローカルバンドル
 
 ## 未実装機能
 
 現時点では以下は未実装です。今後のマイルストーンで段階的に対応します。
 
-- 全ページ表示・ページ送り
 - ページサムネイル生成
 - ページ削除・並べ替え・回転の実処理
 - PDF結合・分割
