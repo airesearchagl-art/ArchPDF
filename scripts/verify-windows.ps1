@@ -10,6 +10,7 @@
   Results are logged to logs/windows-verification/.
   Note: this script intentionally avoids non-ASCII characters to prevent
   encoding issues (Shift-JIS / UTF-8 BOM mismatches) on Windows PowerShell.
+  Pass/fail is determined only by command exit code, not by stderr output.
   PDF file paths and PDF content are never written to the log.
 
 .EXAMPLE
@@ -27,7 +28,7 @@ param(
     [switch]$RunTauriBuild
 )
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $RepoRoot
@@ -56,24 +57,31 @@ function Write-Log {
     $Message | Tee-Object -FilePath $LogFile -Append | Out-Host
 }
 
-function Invoke-Step {
+function Invoke-Native {
     param(
         [string]$Name,
         [scriptblock]$Action
     )
     Write-Log ("==== {0} ====" -f $Name)
-    [string]$status = 'fail'
-    try {
-        $output = & $Action 2>&1
-        foreach ($line in $output) {
-            Write-Log ([string]$line)
-        }
-        if ($LASTEXITCODE -ne 0 -and $null -ne $LASTEXITCODE) {
-            throw ("{0} failed with exit code {1}" -f $Name, $LASTEXITCODE)
-        }
-        $status = 'pass'
-    } catch {
-        Write-Log ("ERROR: {0}" -f $_.Exception.Message)
+    $global:LASTEXITCODE = 0
+    $output = & $Action 2>&1
+    foreach ($line in $output) {
+        Write-Log ([string]$line)
+    }
+    $exitCode = $LASTEXITCODE
+    if ($null -eq $exitCode) { $exitCode = 0 }
+    return [int]$exitCode
+}
+
+function Invoke-Step {
+    param(
+        [string]$Name,
+        [scriptblock]$Action
+    )
+    $exitCode = Invoke-Native -Name $Name -Action $Action
+    [string]$status = 'pass'
+    if ($exitCode -ne 0) {
+        Write-Log ("ERROR: {0} failed with exit code {1}" -f $Name, $exitCode)
         $status = 'fail'
     }
     return [string]$status
@@ -83,20 +91,16 @@ Write-Log ("ArchPDF Windows Verification - {0}" -f (Get-Date -Format 'yyyy-MM-dd
 
 # --- Branch fetch/checkout/pull ---
 if ($Branch) {
-    Write-Log "==== git fetch origin ===="
-    git fetch origin 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
+    $null = Invoke-Native -Name 'git fetch origin' -Action { git fetch origin }
 
     $localBranchExists = [bool](git branch --list $Branch)
     if ($localBranchExists) {
-        Write-Log ("==== git checkout {0} ====" -f $Branch)
-        git checkout $Branch 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
+        $null = Invoke-Native -Name ("git checkout {0}" -f $Branch) -Action { git checkout $Branch }
     } else {
-        Write-Log ("==== git checkout -b {0} origin/{0} ====" -f $Branch)
-        git checkout -b $Branch "origin/$Branch" 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
+        $null = Invoke-Native -Name ("git checkout -b {0} origin/{0}" -f $Branch) -Action { git checkout -b $Branch "origin/$Branch" }
     }
 
-    Write-Log ("==== git pull origin {0} ====" -f $Branch)
-    git pull origin $Branch 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
+    $null = Invoke-Native -Name ("git pull origin {0}" -f $Branch) -Action { git pull origin $Branch }
 }
 
 # --- git status check ---
@@ -108,9 +112,18 @@ if ($statusOutput) {
     if ($AutoStash) {
         $stashMessage = "auto-stash-before-windows-verification-$Timestamp"
         Write-Log ("Working tree is not clean. Stashing local changes: {0}" -f $stashMessage)
-        git stash push -u -m $stashMessage 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
-        $Results.auto_stash = "stashed ($stashMessage)"
-        Write-Log "Note: stash was not automatically popped. Restore manually with 'git stash pop' if needed."
+        $stashExitCode = Invoke-Native -Name 'git stash push' -Action { git stash push -u -m $stashMessage }
+        if ($stashExitCode -eq 0) {
+            $Results.auto_stash = 'stashed'
+            Write-Log "Note: stash was not automatically popped. Restore manually with 'git stash pop' if needed."
+        } else {
+            Write-Log ("ERROR: git stash push failed with exit code {0}" -f $stashExitCode)
+            $Results.auto_stash = 'fail'
+            $Results.Branch = (git rev-parse --abbrev-ref HEAD)
+            $Results.Commit = (git rev-parse --short HEAD)
+            Write-Log ($Results | Out-String)
+            exit 1
+        }
     } else {
         Write-Log "Working tree is not clean."
         Write-Log "Use -AutoStash to stash local changes automatically."
@@ -118,6 +131,10 @@ if ($statusOutput) {
         $Results.Commit = (git rev-parse --short HEAD)
         Write-Log ($Results | Out-String)
         exit 1
+    }
+} else {
+    if ($AutoStash) {
+        $Results.auto_stash = 'not_needed'
     }
 }
 
