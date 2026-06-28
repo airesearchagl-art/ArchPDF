@@ -59,6 +59,42 @@
   align-self: center;
 }
 
+.toolbar-page-jump {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  font-size: 13px;
+  color: #444;
+}
+
+.toolbar-page-jump-input {
+  width: 48px;
+  text-align: center;
+  padding: 4px;
+  font-size: 13px;
+}
+
+.toolbar-page-jump-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.toolbar-page-jump-total {
+  min-width: 32px;
+}
+
+.toolbar-page-jump-error {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #c0392b;
+  background: #fff;
+  z-index: 1;
+}
+
 .page-thumbnails {
   width: 180px;
   border-right: 1px solid #eee;
