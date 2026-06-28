@@ -135,6 +135,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1 -Branch feat
 - 選択したPDFをローカルで読み込み、PDF.jsで表示中の1ページのみをcanvasに表示
 - 総ページ数の表示
 - 前後ページ移動（ボタン / ArrowLeft・ArrowRight・PageUp・PageDown）
+- ページ番号入力ジャンプ（入力欄にページ番号を入力しEnterで移動、範囲外・数値以外はエラー表示、Escapeで現在ページ表示に戻す）
 - ズームイン / ズームアウト（段階式、ボタン / Ctrl + マウスホイール）
 - 100%表示（Ctrl + 0）
 - 幅に合わせるフィット表示

@@ -95,6 +95,11 @@ function App() {
     setCurrentPage((page) => Math.min(pageCount, page + 1));
   };
 
+  const handleGoToPage = (pageNumber: number) => {
+    if (!requirePdf()) return;
+    setCurrentPage(Math.min(Math.max(1, pageNumber), pageCount));
+  };
+
   const handleZoomIn = () => {
     if (!requirePdf()) return;
     setZoomMode('custom');
@@ -178,6 +183,7 @@ function App() {
         scale={scale}
         onPrevPage={handlePrevPage}
         onNextPage={handleNextPage}
+        onGoToPage={handleGoToPage}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onZoom100={handleZoom100}
