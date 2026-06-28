@@ -138,18 +138,19 @@ powershell -ExecutionPolicy Bypass -File scripts/verify-windows.ps1 -Branch feat
 - ズームイン / ズームアウト（段階式、ボタン / Ctrl + マウスホイール）
 - 100%表示（Ctrl + 0）
 - 幅に合わせるフィット表示
+- 読み込み中・成功・失敗（破損PDF / 読み込み失敗 / PDF.js初期化失敗 / Tauri API呼び出し失敗 / ページ取得失敗 / ページ番号範囲外 / 描画失敗）の状態表示と、描画失敗時の再描画ボタン
+- PDF.jsワーカーはCDNを使わずnpmパッケージからローカルバンドル
 
 ### キーボードショートカット
 
-- `Ctrl + +` / `Ctrl + =`: ズームイン
+- `Ctrl + =`: ズームイン
 - `Ctrl + -`: ズームアウト
 - `Ctrl + 0`: 100%表示
 - `Ctrl + マウスホイール`（PDF表示領域上）: ズームイン / ズームアウト
+- `Ctrl + +`: 環境によっては反応しない場合あり（`Ctrl + =` またはCtrl + マウスホイールを推奨）
 - `ArrowLeft` / `ArrowRight` または `PageUp` / `PageDown`: ページ移動
 
 入力欄やcontenteditable要素にフォーカスがある場合、これらのショートカットは無効化されます。
-- 読み込み中・成功・失敗（破損PDF / 読み込み失敗 / PDF.js初期化失敗 / Tauri API呼び出し失敗 / ページ取得失敗 / ページ番号範囲外）の状態表示
-- PDF.jsワーカーはCDNを使わずnpmパッケージからローカルバンドル
 
 ## 未実装機能
 
